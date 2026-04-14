@@ -1,4 +1,4 @@
-# lifebench_eval.py - CORRECTED VERSION using Slot Search
+# lifebench_eval.py - using Slot Search
 import json
 import requests
 import os
@@ -63,6 +63,66 @@ def score_answer(retrieved: str, ground_truth: str) -> bool:
         return retrieved.strip().upper() == ground_truth.strip().upper()
     # For text answers
     return retrieved.strip().lower() == ground_truth.strip().lower()
+
+
+
+def wipe_namespace(namespace: str, db_name: str = DB_NAME, timeout: int = 30) -> bool:
+    """Wipe a specific namespace from the database"""
+    print(f"  Wiping namespace '{namespace}'...")
+    try:
+        resp = requests.delete(
+            f"{SERVER_URL}/db/{db_name}/namespace/{namespace}",
+            headers={"X-API-Key": API_KEY} if API_KEY else {},
+            timeout=timeout,
+        )
+        if resp.status_code in (200, 404):
+            print(f"  ✓ Wiped (status {resp.status_code})")
+            return True
+        else:
+            print(f"  ⚠️  {resp.status_code}: {resp.text[:100]}")
+            return False
+    except Exception as e:
+        print(f"  ✗ Wipe error: {e}")
+        return False
+
+
+
+def wipe_all_lifebench_data(users: list = None):
+    """Wipe all LifeBench namespaces for users 5-10"""
+    if users is None:
+        users = range(5, 11)  # Users 5-10
+    
+    print(f"\n{'='*60}")
+    print(f"Wiping LifeBench Data for Users {min(users)}-{max(users)}")
+    print(f"{'='*60}")
+    
+    # Wipe document namespaces
+    print("\n📄 Wiping document namespaces:")
+    for user_id in users:
+        doc_ns = f"lifebench_doc_{user_id}"
+        wipe_namespace(doc_ns)
+    
+    # Wipe QA namespaces
+    print("\n❓ Wiping QA namespaces:")
+    for user_id in users:
+        qa_ns = f"{QA_NS_PREFIX}{user_id}"
+        wipe_namespace(qa_ns)
+    
+    # Also clear the namespace tracking files
+    ns_files = ["lifebench_doc_namespaces.json", "lifebench_qa_namespaces.json"]
+    print("\n🗑️  Clearing namespace tracking files:")
+    for ns_file in ns_files:
+        if os.path.exists(ns_file):
+            os.remove(ns_file)
+            print(f"  ✓ Removed {ns_file}")
+        else:
+            print(f"  - {ns_file} not found")
+    
+    print(f"\n{'='*60}")
+    print(f"✅ Wipe complete!")
+    print(f"{'='*60}")
+
+
 
 def evaluate_user(user_id: int, qa_pairs: List[Dict]) -> Dict:
     """Evaluate using slot search on QA namespace"""
