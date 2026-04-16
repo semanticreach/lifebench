@@ -12,3 +12,8 @@ This result highlights HyperBinder’s ability to deliver stable, high-precision
 
 Try it yourself:
 Request an API key at questions@semantic-reach.io
+
+
+
+Run ingest lifebench_ingest_all.py --wipe
+run eval 
